@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
@@ -7,6 +7,7 @@ import string
 
 
 app = Flask(__name__)
+app.secret_key = "dev-secret-key"
 
 
 # Database configuration
@@ -86,8 +87,16 @@ def home():
     return render_template("index.html")
 
 
-@app.route("/register")
+@app.route("/register", methods=["GET", "POST"])
 def register():
+    if request.method == "POST":
+        member = create_member()
+
+        return (
+            f"Registration successful! "
+            f"Your referral code is: {member.invite_code}"
+        )
+
     return render_template("register.html")
 
 
@@ -95,22 +104,36 @@ def register():
 def staff():
     if request.method == "POST":
         invite_code = request.form.get("invite_code")
-        amount = float(request.form.get("amount"))
+
+        try:
+            amount = float(request.form["amount"])
+        except (TypeError, ValueError):
+            flash("Please enter a valid customer spend amount.", "error")
+            return redirect(url_for("staff"))
+
+        if amount <= 0:
+            flash("Customer spend must be greater than £0.", "error")
+            return redirect(url_for("staff"))
 
         member = Member.query.filter_by(invite_code=invite_code).first()
 
-        if member is None:
-            return "Member not found"
+        if not member:
+            flash("Referral code not found.", "error")
+            return redirect(url_for("staff"))
 
         referral = add_referral(member, amount)
 
-        return (
+        flash(
             f"Referral added successfully! "
             f"Reward: £{referral.reward:.2f} | "
-            f"New balance: £{member.balance:.2f}"
+            f"New balance: £{member.balance:.2f}",
+            "success"
         )
 
-    return render_template("staff.html")
+        return redirect(url_for("staff"))
+
+    referrals = Referral.query.order_by(Referral.created_at.desc()).all()
+    return render_template("staff.html", referrals=referrals)
 
 
 if __name__ == "__main__":

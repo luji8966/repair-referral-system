@@ -10,6 +10,22 @@
 
     <h1>Add Referral</h1>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == "success" %}
+                    <p style="color: green; font-weight: bold;">
+                        {{ message }}
+                    </p>
+                {% else %}
+                    <p style="color: red; font-weight: bold;">
+                        {{ message }}
+                    </p>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <form method="POST">
 
         <label>Referral Code:</label>
@@ -25,6 +41,30 @@
         <button type="submit">Confirm Referral</button>
 
     </form>
+
+    <hr>
+
+    <h2>Referral History</h2>
+
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>ID</th>
+            <th>Member ID</th>
+            <th>Amount</th>
+            <th>Reward</th>
+            <th>Created At</th>
+        </tr>
+
+        {% for referral in referrals %}
+        <tr>
+            <td>{{ referral.id }}</td>
+            <td>{{ referral.member_id }}</td>
+            <td>£{{ "%.2f"|format(referral.amount) }}</td>
+            <td>£{{ "%.2f"|format(referral.reward) }}</td>
+            <td>{{ referral.created_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 
 </body>
 </html>
