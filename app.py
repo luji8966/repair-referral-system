@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from datetime import datetime
 import random
 import string
 
@@ -11,6 +13,7 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///referral.db"
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -24,6 +27,7 @@ class Referral(db.Model):
     member_id = db.Column(db.Integer, db.ForeignKey("member.id"), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     reward = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
 
 def generate_invite_code():
