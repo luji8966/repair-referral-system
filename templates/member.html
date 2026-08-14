@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Rewards</title>
+</head>
+
+<body>
+
+    <h1>My Rewards</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == "success" %}
+                    <p style="color: green; font-weight: bold;">
+                        {{ message }}
+                    </p>
+                {% else %}
+                    <p style="color: red; font-weight: bold;">
+                        {{ message }}
+                    </p>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <p>
+        <strong>Referral Code:</strong>
+        {{ member.invite_code }}
+    </p>
+
+    <p>
+        <strong>Total Rewards:</strong>
+        £{{ "%.2f"|format(total_rewards) }}
+    </p>
+
+    <p>
+        <strong>Current Balance:</strong>
+        £{{ "%.2f"|format(member.balance) }}
+    </p>
+
+    <p>
+        <strong>Pending Withdrawals:</strong>
+        £{{ "%.2f"|format(pending_total) }}
+    </p>
+
+    <p>
+        <strong>Available to Withdraw:</strong>
+        £{{ "%.2f"|format(available_balance) }}
+    </p>
+
+    <hr>
+
+    <h2>Request Withdrawal</h2>
+
+    <form method="POST"
+        action="{{ url_for('member_withdraw', invite_code=member.invite_code) }}">
+
+        <label>Amount (£):</label>
+
+        <input
+            type="number"
+            name="amount"
+            step="0.01"
+            min="0.01"
+            max="{{ available_balance }}"
+            required
+        >
+
+        <button type="submit">
+            Request Withdrawal
+        </button>
+
+    </form>
+
+    <hr>
+
+    <h2>Referral History</h2>
+
+    {% if referrals %}
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Customer Spend</th>
+                <th>Reward</th>
+                <th>Date</th>
+            </tr>
+
+            {% for referral in referrals %}
+            <tr>
+                <td>£{{ "%.2f"|format(referral.amount) }}</td>
+                <td>£{{ "%.2f"|format(referral.reward) }}</td>
+                <td>{{ format_uk_time(referral.created_at) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No referral history yet.</p>
+    {% endif %}
+
+        <hr>
+
+        <h2>Withdrawal History</h2>
+
+        {% if withdrawals %}
+            <table border="1" cellpadding="8">
+                <tr>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Requested At</th>
+                    <th>Paid At</th>
+                </tr>
+
+                {% for withdrawal in withdrawals %}
+                <tr>
+                    <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+                    <td>{{ withdrawal.status }}</td>
+                    <td>{{ format_uk_time(withdrawal.created_at) }}</td>
+                    <td>{{ format_uk_time(withdrawal.paid_at) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>No withdrawal history yet.</p>
+        {% endif %}
+
+</body>
+</html>

@@ -71,7 +71,7 @@
                 <td>{{ referral.id }}</td>
                 <td>£{{ "%.2f"|format(referral.amount) }}</td>
                 <td>£{{ "%.2f"|format(referral.reward) }}</td>
-                <td>{{ referral.created_at }}</td>
+                <td>{{ format_uk_time(referral.created_at) }}</td>
             </tr>
             {% endfor %}
         </table>
@@ -94,11 +94,11 @@
                 <td>{{ withdrawal.id }}</td>
                 <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
                 <td>{{ withdrawal.status }}</td>
-                <td>{{ withdrawal.created_at }}</td>
+                <td>{{ format_uk_time(withdrawal.created_at) }}</td>
 
                 <td>
                     {% if withdrawal.paid_at %}
-                        {{ withdrawal.paid_at }}
+                        {{ format_uk_time(withdrawal.paid_at) }}
                     {% else %}
                         -
                     {% endif %}

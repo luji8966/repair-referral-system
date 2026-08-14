@@ -70,7 +70,7 @@
             <td>{{ referral.member_id }}</td>
             <td>£{{ "%.2f"|format(referral.amount) }}</td>
             <td>£{{ "%.2f"|format(referral.reward) }}</td>
-            <td>{{ referral.created_at }}</td>
+            <td>{{ format_uk_time(referral.created_at) }}</td>
         </tr>
         {% endfor %}
     </table>

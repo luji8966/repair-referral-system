@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from decimal import Decimal, InvalidOperation
 import random
 import string
@@ -16,7 +17,6 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-
 
 # Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///referral.db"
@@ -50,6 +50,7 @@ class Withdrawal(db.Model):
         db.ForeignKey("member.id"),
         nullable=False
     )
+    member = db.relationship("Member")
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     status = db.Column(db.String(20), default="pending", nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -173,6 +174,21 @@ def mark_withdrawal_paid(withdrawal):
     return withdrawal
 
 
+def format_uk_time(dt):
+    if dt is None:
+        return "-"
+
+    uk_time = dt.replace(
+        tzinfo=timezone.utc
+    ).astimezone(
+        ZoneInfo("Europe/London")
+    )
+
+    return uk_time.strftime("%d %b %Y, %H:%M")
+
+app.jinja_env.globals["format_uk_time"] = format_uk_time
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -194,8 +210,15 @@ def register():
 @app.route("/staff", methods=["GET", "POST"])
 def staff():
     if not session.get("staff_logged_in"):
-        return redirect(url_for("login"))
+        return redirect(
+            url_for(
+                "login",
+                next=request.url
+            )
+        )
+    
     invite_code = request.args.get("invite_code")
+
     if request.method == "POST":
         invite_code = request.form.get("invite_code")
 
@@ -240,10 +263,14 @@ def members():
 
     member = None
     referrals = []
+    withdrawals = []
     qr_code = None
+
     total_referrals = 0
-    total_spend = 0
-    total_rewards = 0
+    total_spend = Decimal("0.00")
+    total_rewards = Decimal("0.00")
+    pending_total = Decimal("0.00")
+    available_balance = Decimal("0.00")
 
     if invite_code:
         member = Member.query.filter_by(invite_code=invite_code).first()
@@ -270,12 +297,13 @@ def members():
                 Decimal("0.00")
             )
             available_balance = member.balance - pending_total
-            staff_url = url_for(
-                "staff",
-                invite_code=member.invite_code,
-                _external=True
+
+            member_url = (
+                f"http://192.168.1.113:5000/member/"
+                f"{member.invite_code}"
             )
-            qr_code = generate_qr_code(staff_url)
+
+            qr_code = generate_qr_code(member_url)
 
     return render_template(
         "members.html",
@@ -325,14 +353,19 @@ def withdraw():
 def withdrawals():
     if not session.get("staff_logged_in"):
         return redirect(url_for("login"))
-    
+
     pending_withdrawals = Withdrawal.query.filter_by(
         status="pending"
-    ).order_by(Withdrawal.created_at.desc()).all()
+    ).order_by(Withdrawal.created_at.asc()).all()
+
+    paid_withdrawals = Withdrawal.query.filter_by(
+        status="paid"
+    ).order_by(Withdrawal.paid_at.desc()).all()
 
     return render_template(
         "withdrawals.html",
-        withdrawals=pending_withdrawals
+        withdrawals=pending_withdrawals,
+        paid_withdrawals=paid_withdrawals
     )
 
 
@@ -368,7 +401,12 @@ def login():
 
         if password == os.getenv("STAFF_PASSWORD"):
             session["staff_logged_in"] = True
-            flash("Login successful.", "success")
+
+            next_url = request.args.get("next")
+
+            if next_url:
+                return redirect(next_url)
+
             return redirect(url_for("staff"))
 
         flash("Incorrect password.", "error")
@@ -383,5 +421,76 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/member/<invite_code>")
+def member_page(invite_code):
+    member = Member.query.filter_by(invite_code=invite_code).first()
+
+    if member is None:
+        return "Member not found", 404
+
+    referrals = Referral.query.filter_by(
+        member_id=member.id
+    ).all()
+
+    withdrawals = Withdrawal.query.filter_by(
+        member_id=member.id
+    ).all()
+
+    total_rewards = sum(
+        (referral.reward for referral in referrals),
+        Decimal("0.00")
+    )
+
+    pending_total = sum(
+        (
+            withdrawal.amount
+            for withdrawal in withdrawals
+            if withdrawal.status == "pending"
+        ),
+        Decimal("0.00")
+    )
+
+    available_balance = member.balance - pending_total
+
+    return render_template(
+        "member.html",
+        member=member,
+        referrals=referrals,
+        withdrawals=withdrawals,
+        total_rewards=total_rewards,
+        pending_total=pending_total,
+        available_balance=available_balance
+    )
+
+
+@app.route("/member/<invite_code>/withdraw", methods=["POST"])
+def member_withdraw(invite_code):
+    member = Member.query.filter_by(invite_code=invite_code).first()
+
+    if member is None:
+        return "Member not found", 404
+
+    amount_text = request.form.get("amount")
+
+    try:
+        amount = Decimal(amount_text)
+        create_withdrawal(member, amount)
+
+    except (TypeError, ValueError, InvalidOperation) as error:
+        flash(str(error), "error")
+        return redirect(
+            url_for("member_page", invite_code=invite_code)
+        )
+
+    flash(
+        f"Withdrawal request submitted successfully! Amount: £{amount:.2f}",
+        "success"
+    )
+
+    return redirect(
+        url_for("member_page", invite_code=invite_code)
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

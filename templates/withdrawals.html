@@ -29,6 +29,7 @@
     <table border="1" cellpadding="8">
         <tr>
             <th>ID</th>
+            <th>Referral Code</th>
             <th>Member ID</th>
             <th>Amount</th>
             <th>Status</th>
@@ -39,16 +40,44 @@
         {% for withdrawal in withdrawals %}
         <tr>
             <td>{{ withdrawal.id }}</td>
+            <td>{{ withdrawal.member.invite_code }}</td>
             <td>{{ withdrawal.member_id }}</td>
             <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
             <td>{{ withdrawal.status }}</td>
-            <td>{{ withdrawal.created_at }}</td>
+            <td>{{ format_uk_time(withdrawal.created_at) }}</td>
             <td>
                 <form method="POST"
-                    action="{{ url_for('pay_withdrawal', withdrawal_id=withdrawal.id) }}">
+                    action="{{ url_for('pay_withdrawal', withdrawal_id=withdrawal.id) }}"
+                    onsubmit="return confirm('Have you already paid this withdrawal?');">
                     <button type="submit">Mark as Paid</button>
                 </form>
             </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <hr>
+
+    <h2>Paid Withdrawal History</h2>
+
+    <table border="1" cellpadding="8">
+        <tr>
+            <th>ID</th>
+            <th>Member ID</th>
+            <th>Referral Code</th>
+            <th>Amount</th>
+            <th>Requested At</th>
+            <th>Paid At</th>
+        </tr>
+
+        {% for withdrawal in paid_withdrawals %}
+        <tr>
+            <td>{{ withdrawal.id }}</td>
+            <td>{{ withdrawal.member_id }}</td>
+            <td>{{ withdrawal.member.invite_code }}</td>
+            <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+            <td>{{ format_uk_time(withdrawal.created_at) }}</td>
+            <td>{{ format_uk_time(withdrawal.paid_at) }}</td>
         </tr>
         {% endfor %}
     </table>
