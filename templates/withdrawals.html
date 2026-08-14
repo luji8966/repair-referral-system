@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff - Add Referral</title>
+    <title>Withdrawal Management</title>
 </head>
 
 <body>
 
-    <h1>Add Referral</h1>
-
-    <p>
-        <a href="{{ url_for('logout') }}">Logout</a>
-    </p>
+    <h1>Withdrawal Management</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -30,47 +26,29 @@
         {% endif %}
     {% endwith %}
 
-    <form method="POST">
-
-        <label>Referral Code:</label>
-        <input
-            type="text"
-            name="invite_code"
-            value="{{ invite_code or '' }}"
-            required
-        >
-
-        <br><br>
-
-        <label>Customer Spend (£):</label>
-        <input type="number" name="amount" step="0.01" min="0.01" required>
-
-        <br><br>
-
-        <button type="submit">Confirm Referral</button>
-
-    </form>
-
-    <hr>
-
-    <h2>Referral History</h2>
-
     <table border="1" cellpadding="8">
         <tr>
             <th>ID</th>
             <th>Member ID</th>
             <th>Amount</th>
-            <th>Reward</th>
+            <th>Status</th>
             <th>Created At</th>
+            <th>Action</th>
         </tr>
 
-        {% for referral in referrals %}
+        {% for withdrawal in withdrawals %}
         <tr>
-            <td>{{ referral.id }}</td>
-            <td>{{ referral.member_id }}</td>
-            <td>£{{ "%.2f"|format(referral.amount) }}</td>
-            <td>£{{ "%.2f"|format(referral.reward) }}</td>
-            <td>{{ referral.created_at }}</td>
+            <td>{{ withdrawal.id }}</td>
+            <td>{{ withdrawal.member_id }}</td>
+            <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+            <td>{{ withdrawal.status }}</td>
+            <td>{{ withdrawal.created_at }}</td>
+            <td>
+                <form method="POST"
+                    action="{{ url_for('pay_withdrawal', withdrawal_id=withdrawal.id) }}">
+                    <button type="submit">Mark as Paid</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </table>

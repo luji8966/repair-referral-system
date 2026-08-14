@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Search</title>
+</head>
+
+<body>
+
+    <h1>Member Search</h1>
+
+    <form method="GET">
+        <label>Referral Code:</label>
+        <input type="text" name="invite_code" required>
+
+        <button type="submit">Search</button>
+    </form>
+
+    {% if member %}
+
+        <hr>
+
+        <h2>Member Details</h2>
+
+        <p><strong>Member ID:</strong> {{ member.id }}</p>
+
+        <p><strong>Referral Code:</strong> {{ member.invite_code }}</p>
+
+        <h3>Member QR Code</h3>
+
+        <img
+            src="data:image/png;base64,{{ qr_code }}"
+            alt="Member QR Code"
+            width="200"
+            height="200"
+        >
+
+        <p><strong>Current Balance:</strong> £{{ "%.2f"|format(member.balance) }}</p>
+
+        <p>
+            <strong>Pending Withdrawals:</strong>
+            £{{ "%.2f"|format(pending_total) }}
+        </p>
+
+        <p>
+            <strong>Available to Withdraw:</strong>
+            £{{ "%.2f"|format(available_balance) }}
+        </p>
+
+        <p><strong>Total Referrals:</strong> {{ total_referrals }}</p>
+
+        <p><strong>Total Customer Spend:</strong> £{{ "%.2f"|format(total_spend) }}</p>
+
+        <p><strong>Total Rewards:</strong> £{{ "%.2f"|format(total_rewards) }}</p>
+
+        <hr>
+
+        <h2>Referral History</h2>
+
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>ID</th>
+                <th>Customer Spend</th>
+                <th>Reward</th>
+                <th>Created At</th>
+            </tr>
+
+            {% for referral in referrals %}
+            <tr>
+                <td>{{ referral.id }}</td>
+                <td>£{{ "%.2f"|format(referral.amount) }}</td>
+                <td>£{{ "%.2f"|format(referral.reward) }}</td>
+                <td>{{ referral.created_at }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <hr>
+
+        <h2>Withdrawal History</h2>
+
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>ID</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Requested At</th>
+                <th>Paid At</th>
+            </tr>
+
+            {% for withdrawal in withdrawals %}
+            <tr>
+                <td>{{ withdrawal.id }}</td>
+                <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+                <td>{{ withdrawal.status }}</td>
+                <td>{{ withdrawal.created_at }}</td>
+
+                <td>
+                    {% if withdrawal.paid_at %}
+                        {{ withdrawal.paid_at }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    {% elif request.args.get("invite_code") %}
+
+        <p style="color: red; font-weight: bold;">
+            Member not found.
+        </p>
+
+    {% endif %}
+
+</body>
+</html>
