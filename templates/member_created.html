@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员创建成功</title>
+</head>
+
+<body>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
+
+    <h1>会员创建成功</h1>
+
+    <h2>会员资料</h2>
+
+    <p>
+        <strong>会员编号：</strong>
+        {{ member.id }}
+    </p>
+
+    <p>
+        <strong>昵称：</strong>
+        {{ member.nickname }}
+    </p>
+
+    <p>
+        <strong>手机号：</strong>
+        {% if member.phone %}
+            {{ member.phone }}
+        {% else %}
+            未填写
+        {% endif %}
+    </p>
+
+    <p>
+        <strong>微信号：</strong>
+        {% if member.wechat %}
+            {{ member.wechat }}
+        {% else %}
+            未填写
+        {% endif %}
+    </p>
+
+    <hr>
+
+    <h2>会员私人查询链接</h2>
+
+    <p>请将此链接单独发送给会员本人：</p>
+
+    <p>
+        <input
+            id="member-link"
+            type="text"
+            value="{{ url_for('member_portal', access_token=member.access_token, _external=True) }}"
+            readonly
+            style="width: 100%; max-width: 600px;"
+        >
+    </p>
+
+    <button type="button" onclick="copyMemberLink()">
+        复制会员查询链接
+    </button>
+
+    <p id="copy-message"></p>
+
+    <hr>
+
+    <h2>推荐二维码</h2>
+
+    <p>
+        请将这个二维码发送给会员，用于邀请新客户到店。
+    </p>
+
+    <img
+        src="data:image/png;base64,{{ referral_qr }}"
+        alt="推荐二维码"
+        width="220"
+        height="220"
+    >
+
+    <hr>
+
+    <p>
+        <a href="{{ url_for('create_member_page') }}">
+            <button type="button">继续创建会员</button>
+        </a>
+    </p>
+
+    <script>
+        function copyMemberLink() {
+            const link = document.getElementById("member-link").value;
+
+            navigator.clipboard.writeText(link).then(function() {
+                document.getElementById("copy-message").textContent =
+                    "查询链接已复制";
+            }).catch(function() {
+                document.getElementById("copy-message").textContent =
+                    "复制失败，请手动复制链接";
+            });
+        }
+    </script>
+</body>
+</html>

@@ -8,6 +8,12 @@
 
 <body>
 
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← Back to Dashboard</button>
+        </a>
+    </p>
+
     <h1>Withdrawal Management</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建会员</title>
+</head>
+
+<body>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
+
+    <h1>创建新会员</h1>
+
+    <p>
+        请填写会员的基本资料。手机号和微信号可以留空。
+    </p>
+
+    <ul>
+        <li>唯一邀请码</li>
+        <li>推荐二维码凭证</li>
+        <li>会员私人查询凭证</li>
+    </ul>
+
+    <form method="POST">
+
+        <p>
+            <label for="nickname">昵称 *</label><br>
+            <input
+                type="text"
+                id="nickname"
+                name="nickname"
+                placeholder="例如：李女士"
+                required
+            >
+        </p>
+
+        <p>
+            <label for="phone">手机号（选填）</label><br>
+            <input
+                type="text"
+                id="phone"
+                name="phone"
+                placeholder="例如：07700 123456"
+            >
+        </p>
+
+        <p>
+            <label for="wechat">微信号（选填）</label><br>
+            <input
+                type="text"
+                id="wechat"
+                name="wechat"
+                placeholder="例如：wx123456"
+            >
+        </p>
+
+        <button type="submit">创建会员</button>
+
+    </form>
+
+</body>
+</html>

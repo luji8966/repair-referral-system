@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referral System Dashboard</title>
+</head>
+
+<body>
+
+    <h1>控制台</h1>
+
+    <p>管理系统</p>
+
+    <hr>
+
+    <h2>创建会员</h2>
+
+    <p>
+        为新的推荐会员创建账户，并生成邀请码、推荐二维码和私人查询链接。
+    </p>
+
+    <a href="{{ url_for('create_member_page') }}">
+        <button type="button">创建新会员</button>
+    </a>
+
+    <hr>
+
+    <h2>扫描推荐二维码</h2>
+
+    <p>
+        Scan a member's referral QR code and open the referral entry page
+    </p>
+
+    <a href="{{ url_for('scan') }}">
+        <button>扫描推荐二维码</button>
+    </a>
+
+    <hr>
+
+    <h2>搜索成员</h2>
+    <p>Search for a member and view their balance and history.</p>
+    <a href="{{ url_for('members') }}">
+        <button>搜索成员</button>
+    </a>
+
+    <hr>
+
+    <h2>提现管理</h2>
+    <p>Review pending withdrawal requests and mark completed payments as paid.</p>
+    <a href="{{ url_for('withdrawals') }}">
+        <button>管理提现</button>
+    </a>
+
+    <hr>
+
+    <p>
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </p>
+
+</body>
+</html>

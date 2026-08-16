@@ -4,126 +4,246 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Rewards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-top: 10px;
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            margin-top: 28px;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        form {
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 12px;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 28px 0;
+        }
+
+        .balance-card {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .balance-label {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body>
+    <div class="container">
 
-    <h1>My Rewards</h1>
+        <h1>我的返利</h1>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                {% if category == "success" %}
-                    <p style="color: green; font-weight: bold;">
-                        {{ message }}
-                    </p>
-                {% else %}
-                    <p style="color: red; font-weight: bold;">
-                        {{ message }}
-                    </p>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% if category == "success" %}
+                        <p style="color: green; font-weight: bold;">
+                            {{ message }}
+                        </p>
+                    {% else %}
+                        <p style="color: red; font-weight: bold;">
+                            {{ message }}
+                        </p>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    <p>
-        <strong>Referral Code:</strong>
-        {{ member.invite_code }}
-    </p>
+        <h2>我的资料</h2>
+  
+        <p>
+            <strong>昵称：</strong>
+            {{ member.nickname or "未填写" }}
+        </p>
 
-    <p>
-        <strong>Total Rewards:</strong>
-        £{{ "%.2f"|format(total_rewards) }}
-    </p>
-
-    <p>
-        <strong>Current Balance:</strong>
-        £{{ "%.2f"|format(member.balance) }}
-    </p>
-
-    <p>
-        <strong>Pending Withdrawals:</strong>
-        £{{ "%.2f"|format(pending_total) }}
-    </p>
-
-    <p>
-        <strong>Available to Withdraw:</strong>
-        £{{ "%.2f"|format(available_balance) }}
-    </p>
-
-    <hr>
-
-    <h2>Request Withdrawal</h2>
-
-    <form method="POST"
-        action="{{ url_for('member_withdraw', invite_code=member.invite_code) }}">
-
-        <label>Amount (£):</label>
-
-        <input
-            type="number"
-            name="amount"
-            step="0.01"
-            min="0.01"
-            max="{{ available_balance }}"
-            required
-        >
-
-        <button type="submit">
-            Request Withdrawal
-        </button>
-
-    </form>
-
-    <hr>
-
-    <h2>Referral History</h2>
-
-    {% if referrals %}
-        <table border="1" cellpadding="8">
-            <tr>
-                <th>Customer Spend</th>
-                <th>Reward</th>
-                <th>Date</th>
-            </tr>
-
-            {% for referral in referrals %}
-            <tr>
-                <td>£{{ "%.2f"|format(referral.amount) }}</td>
-                <td>£{{ "%.2f"|format(referral.reward) }}</td>
-                <td>{{ format_uk_time(referral.created_at) }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>No referral history yet.</p>
-    {% endif %}
+        <p>
+            <strong>手机号：</strong>
+            {% if member.phone %}
+                {{ member.phone[:3] }}****{{ member.phone[-4:] }}
+            {% else %}
+                未填写
+            {% endif %}
+        </p>
 
         <hr>
 
-        <h2>Withdrawal History</h2>
+        <h2>我的邀请二维码</h2>
 
-        {% if withdrawals %}
+        <p>
+            将此二维码分享给朋友，朋友到店消费后即可获得推荐奖励。
+        </p>
+
+        <img
+            src="data:image/png;base64,{{ referral_qr }}"
+            alt="我的邀请二维码"
+            width="220"
+            height="220"
+        >
+
+        <p>
+            <strong>总奖励:</strong>
+            £{{ "%.2f"|format(total_rewards) }}
+        </p>
+
+        <p>
+            <strong>余额:</strong>
+            £{{ "%.2f"|format(member.balance) }}
+        </p>
+
+        <p>
+            <strong>待处理提现:</strong>
+            £{{ "%.2f"|format(pending_total) }}
+        </p>
+
+        <div class="balance-card">
+            <div class="balance-label">可提现余额</div>
+            <div class="balance-amount">
+                £{{ "%.2f"|format(available_balance) }}
+            </div>
+        </div>
+
+        <hr>
+
+        <h2>申请提现</h2>
+
+        <form method="POST"
+      action="{{ url_for('member_withdraw', access_token=member.access_token) }}">
+            <label>金额 (£):</label>
+
+            <input
+                type="number"
+                name="amount"
+                step="0.01"
+                min="0.01"
+                max="{{ available_balance }}"
+                required
+            >
+
+            <button type="submit">
+                Request Withdrawal
+            </button>
+
+        </form>
+
+        <hr>
+
+        <h2>邀请记录</h2>
+
+        {% if referrals %}
             <table border="1" cellpadding="8">
                 <tr>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Requested At</th>
-                    <th>Paid At</th>
+                    <th>客户消费</th>
+                    <th>奖励</th>
+                    <th>日期</th>
                 </tr>
 
-                {% for withdrawal in withdrawals %}
+                {% for referral in referrals %}
                 <tr>
-                    <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
-                    <td>{{ withdrawal.status }}</td>
-                    <td>{{ format_uk_time(withdrawal.created_at) }}</td>
-                    <td>{{ format_uk_time(withdrawal.paid_at) }}</td>
+                    <td>£{{ "%.2f"|format(referral.amount) }}</td>
+                    <td>£{{ "%.2f"|format(referral.reward) }}</td>
+                    <td>{{ format_uk_time(referral.created_at) }}</td>
                 </tr>
                 {% endfor %}
             </table>
         {% else %}
-            <p>No withdrawal history yet.</p>
+            <p>暂无邀请记录。</p>
         {% endif %}
 
+            <hr>
+
+            <h2>提现历史</h2>
+
+            {% if withdrawals %}
+                <table border="1" cellpadding="8">
+                    <tr>
+                        <th>金额 (£)</th>
+                        <th>状态</th>
+                        <th>申请时间</th>
+                        <th>支付时间</th>
+                    </tr>
+
+                    {% for withdrawal in withdrawals %}
+                    <tr>
+                        <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+                        <td>{{ withdrawal.status }}</td>
+                        <td>{{ format_uk_time(withdrawal.created_at) }}</td>
+                        <td>{{ format_uk_time(withdrawal.paid_at) }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            {% else %}
+                <p>暂无提现历史。</p>
+            {% endif %}
+
+    </div>
 </body>
 </html>

@@ -17,3 +17,5 @@ Thumbs.db
 
 # Local database
 instance/
+*.db
+*.sqlite

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐会员识别结果</title>
+</head>
+
+<body>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
+
+    <h1>推荐会员识别成功</h1>
+
+    <p>
+        <strong>邀请码：</strong>
+        {{ member.invite_code }}
+    </p>
+
+    <p>
+        系统已识别对应的推荐会员。
+    </p>
+
+    <a href="{{ url_for('staff', invite_code=member.invite_code) }}">
+        <button type="button">录入本次消费</button>
+    </a>
+
+</body>
+</html>

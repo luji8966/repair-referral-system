@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>门店指引</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f6f7f9;
+            color: #222;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .welcome {
+            text-align: center;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .store-image {
+            width: 100%;
+            border-radius: 12px;
+            display: block;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .info {
+            line-height: 1.8;
+        }
+
+        .notice {
+            background: #fff7e6;
+            border-radius: 12px;
+            padding: 16px;
+            line-height: 1.7;
+        }
+
+        .highlight {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="card">
+        <h1>欢迎到店</h1>
+
+        <p class="welcome">
+            您已通过朋友分享的推荐二维码找到我们。<br>
+            到店消费时，请向工作人员出示此二维码。
+        </p>
+    </div>
+
+    <div class="card">
+
+        <div class="title">📍 门店位置</div>
+
+        <img
+            src="{{ url_for('static', filename='store/store.jpg') }}"
+            alt="门店位置"
+            class="store-image"
+        >
+
+        <div class="info">
+            <p>
+                <strong>地址：</strong><br>
+                124 Shaftesbury Avenue,<br>
+                London W1D 5ES
+            </p>
+
+            <p>
+                <strong>营业时间：</strong><br>
+                10:30 - 20:00
+            </p>
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <div class="title">🎁 到店提示</div>
+
+        <div class="notice">
+            到店消费时，请向工作人员出示
+            <span class="highlight">此推荐二维码</span>。
+            <br><br>
+            工作人员会为您的推荐人记录相应返利。
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

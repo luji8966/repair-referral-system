@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Scan Referral QR</title>
+</head>
+
+<body>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← Back to Dashboard</button>
+        </a>
+    </p>
+
+    <h1>Scan Referral QR</h1>
+
+    <p>
+        Scan a member's referral QR code to identify the referring member.
+    </p>
+
+    <div id="reader"></div>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            Back to Dashboard
+        </a>
+    </p>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script>
+        function onScanSuccess(decodedText) {
+            try {
+                const url = new URL(decodedText);
+
+                const parts = url.pathname.split("/").filter(Boolean);
+
+                if (parts.length !== 2 || parts[0] !== "ref") {
+                    alert("无效的推荐二维码");
+                    return;
+                }
+
+                const referralToken = parts[1];
+
+                window.location.href =
+                    "/ref/" + encodeURIComponent(referralToken);
+
+            } catch (error) {
+                alert("无效的推荐二维码");
+            }
+        }
+
+        const scanner = new Html5QrcodeScanner(
+            "reader",
+            {
+                fps: 10,
+                qrbox: {
+                    width: 250,
+                    height: 250
+                },
+                rememberLastUsedCamera: true
+            },
+            false
+        );
+
+        scanner.render(onScanSuccess);
+    </script>
+
+</body>
+</html>

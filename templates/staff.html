@@ -8,10 +8,16 @@
 
 <body>
 
-    <h1>Add Referral</h1>
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
+
+    <h1>添加返利</h1>
 
     <p>
-        <a href="{{ url_for('logout') }}">Logout</a>
+        <a href="{{ url_for('logout') }}">退出登录</a>
     </p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -32,36 +38,49 @@
 
     <form method="POST">
 
-        <label>Referral Code:</label>
-        <input
-            type="text"
-            name="invite_code"
-            value="{{ invite_code or '' }}"
-            required
-        >
+        {% if invite_code %}
+
+            <p>
+                <strong>已选择会员：</strong>
+                {{ invite_code }}
+            </p>
+
+            <input
+                type="hidden"
+                name="invite_code"
+                value="{{ invite_code }}"
+            >
+
+        {% else %}
+
+            <p>
+                请先通过「会员管理」搜索会员，或扫描会员的邀请二维码。
+            </p>
+
+        {% endif %}
 
         <br><br>
 
-        <label>Customer Spend (£):</label>
+        <label>客户消费 (£):</label>
         <input type="number" name="amount" step="0.01" min="0.01" required>
 
         <br><br>
 
-        <button type="submit">Confirm Referral</button>
+        <button type="submit">添加返利</button>
 
     </form>
 
     <hr>
 
-    <h2>Referral History</h2>
+    <h2>返利历史</h2>
 
     <table border="1" cellpadding="8">
         <tr>
             <th>ID</th>
-            <th>Member ID</th>
-            <th>Amount</th>
-            <th>Reward</th>
-            <th>Created At</th>
+            <th>会员编号</th>
+            <th>客户消费</th>
+            <th>奖励</th>
+            <th>创建时间</th>
         </tr>
 
         {% for referral in referrals %}

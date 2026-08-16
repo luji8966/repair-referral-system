@@ -11,6 +11,7 @@ import string
 import qrcode
 import io
 import base64
+import secrets
 
 
 load_dotenv()
@@ -26,8 +27,46 @@ migrate = Migrate(app, db)
 
 class Member(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    openid = db.Column(db.String(255), unique=True, nullable=True)
-    invite_code = db.Column(db.String(20), unique=True, nullable=False)
+
+    nickname = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    phone = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
+    wechat = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    openid = db.Column(
+        db.String(255), 
+        unique=True, 
+        nullable=True
+    )
+
+    invite_code = db.Column(
+        db.String(20), 
+        unique=True, 
+        nullable=False
+    )
+
+    referral_token = db.Column(
+        db.String(64),
+        unique=True,
+        nullable=True
+    )
+
+    access_token = db.Column(
+        db.String(64),
+        unique=True,
+        nullable=True
+    )
+
     balance = db.Column(
         db.Numeric(10, 2),
         default=Decimal("0.00"),
@@ -70,8 +109,35 @@ def generate_invite_code():
         if existing_member is None:
             return code
 
+
+def generate_token():
+    return secrets.token_urlsafe(32)
+
+
+def fill_missing_member_tokens():
+    members = Member.query.all()
+    updated_count = 0
+
+    for member in members:
+        updated = False
+
+        if not member.referral_token:
+            member.referral_token = generate_token()
+            updated = True
+
+        if not member.access_token:
+            member.access_token = generate_token()
+            updated = True
+
+        if updated:
+            updated_count += 1
+
+    db.session.commit()
+
+    return updated_count
+
         
-def create_member(openid=None):
+def create_member(openid=None, nickname=None, phone=None, wechat=None):
     if openid:
         existing_member = Member.query.filter_by(openid=openid).first()
 
@@ -79,10 +145,17 @@ def create_member(openid=None):
             return existing_member
 
     invite_code = generate_invite_code()
+    referral_token = generate_token()
+    access_token = generate_token()
 
     member = Member(
         openid=openid,
-        invite_code=invite_code
+        nickname=nickname,
+        phone=phone,
+        wechat=wechat,
+        invite_code=invite_code,
+        referral_token=referral_token,
+        access_token=access_token
     )
 
     db.session.add(member)
@@ -194,19 +267,6 @@ def home():
     return render_template("index.html")
 
 
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        member = create_member()
-
-        return (
-            f"Registration successful! "
-            f"Your referral code is: {member.invite_code}"
-        )
-
-    return render_template("register.html")
-
-
 @app.route("/staff", methods=["GET", "POST"])
 def staff():
     if not session.get("staff_logged_in"):
@@ -247,9 +307,27 @@ def staff():
             "success"
         )
 
-        return redirect(url_for("staff"))
+        return redirect(
+            url_for(
+                "staff",
+                invite_code=invite_code
+            )
+        )
 
-    referrals = Referral.query.order_by(Referral.created_at.desc()).all()
+    referrals = []
+
+    if invite_code:
+        member = Member.query.filter_by(
+            invite_code=invite_code
+        ).first()
+
+        if member:
+            referrals = Referral.query.filter_by(
+                member_id=member.id
+            ).order_by(
+                Referral.created_at.desc()
+            ).all()
+
     return render_template(
         "staff.html",
         referrals=referrals,
@@ -259,12 +337,32 @@ def staff():
 
 @app.route("/members")
 def members():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
     invite_code = request.args.get("invite_code")
+    query = request.args.get("q", "").strip()
 
     member = None
     referrals = []
     withdrawals = []
-    qr_code = None
+    referral_qr = None
+
+    search_results = []
+
+    if query:
+        filters = [
+            Member.nickname.ilike(f"%{query}%"),
+            Member.phone.ilike(f"%{query}%"),
+            Member.wechat.ilike(f"%{query}%")
+        ]
+
+        if query.isdigit():
+            filters.append(Member.id == int(query))
+
+        search_results = Member.query.filter(
+            db.or_(*filters)
+        ).order_by(Member.id.desc()).all()
 
     total_referrals = 0
     total_spend = Decimal("0.00")
@@ -282,6 +380,13 @@ def members():
             withdrawals = Withdrawal.query.filter_by(
                 member_id=member.id
             ).order_by(Withdrawal.created_at.desc()).all()
+            referral_url = url_for(
+                "referral_lookup",
+                referral_token=member.referral_token,
+                _external=True
+            )
+
+            referral_qr = generate_qr_code(referral_url)
 
             total_referrals = len(referrals)
             total_spend = sum(referral.amount for referral in referrals)
@@ -298,55 +403,75 @@ def members():
             )
             available_balance = member.balance - pending_total
 
-            member_url = (
-                f"http://192.168.1.113:5000/member/"
-                f"{member.invite_code}"
-            )
-
-            qr_code = generate_qr_code(member_url)
-
     return render_template(
         "members.html",
         member=member,
         referrals=referrals,
+        referral_qr=referral_qr,
+        search_results=search_results,
+        query=query,
         withdrawals=withdrawals,
         total_referrals=total_referrals,
         total_spend=total_spend,
         total_rewards=total_rewards,
         pending_total=pending_total,
-        available_balance=available_balance,
-        qr_code=qr_code
+        available_balance=available_balance
     )
 
 
-@app.route("/withdraw", methods=["GET", "POST"])
-def withdraw():
+@app.route("/members/create", methods=["GET", "POST"])
+def create_member_page():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
     if request.method == "POST":
-        invite_code = request.form.get("invite_code")
-        amount_text = request.form.get("amount")
+        nickname = request.form.get("nickname", "").strip()
+        phone = request.form.get("phone", "").strip()
+        wechat = request.form.get("wechat", "").strip()
 
-        member = Member.query.filter_by(invite_code=invite_code).first()
-
-        if member is None:
-            flash("Referral code not found.", "error")
-            return redirect(url_for("withdraw"))
-
-        try:
-            amount = Decimal(amount_text)
-            withdrawal = create_withdrawal(member, amount)
-        except (TypeError, ValueError, InvalidOperation) as error:
-            flash(str(error), "error")
-            return redirect(url_for("withdraw"))
-
-        flash(
-            f"Withdrawal request submitted successfully! "
-            f"Amount: £{withdrawal.amount:.2f}",
-            "success"
+        if not nickname:
+            return "请输入会员昵称", 400
+        
+        member = create_member(
+            nickname=nickname,
+            phone=phone,
+            wechat=wechat
         )
 
-        return redirect(url_for("withdraw"))
+        referral_url = url_for(
+            "referral_lookup",
+            referral_token=member.referral_token,
+            _external=True
+        )
 
-    return render_template("withdraw.html")
+        referral_qr = generate_qr_code(referral_url)
+
+        return render_template(
+            "member_created.html",
+            member=member,
+            referral_url=referral_url,
+            referral_qr=referral_qr
+        )
+
+    return render_template("create_member.html")
+
+
+@app.route("/ref/<referral_token>")
+def referral_lookup(referral_token):
+    member = Member.query.filter_by(
+        referral_token=referral_token
+    ).first()
+
+    if not member:
+        return "推荐二维码无效", 404
+
+    if session.get("staff_logged_in"):
+        return render_template(
+            "referral_scan_result.html",
+            member=member
+        )
+
+    return render_template("store_guide.html")
 
 
 @app.route("/withdrawals")
@@ -407,7 +532,7 @@ def login():
             if next_url:
                 return redirect(next_url)
 
-            return redirect(url_for("staff"))
+            return redirect(url_for("dashboard"))
 
         flash("Incorrect password.", "error")
         return redirect(url_for("login"))
@@ -421,20 +546,30 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/member/<invite_code>")
-def member_page(invite_code):
-    member = Member.query.filter_by(invite_code=invite_code).first()
+@app.route("/my/<access_token>")
+def member_portal(access_token):
+    member = Member.query.filter_by(
+        access_token=access_token
+    ).first()
 
-    if member is None:
-        return "Member not found", 404
+    if not member:
+        return "查询链接无效或已失效", 404
 
     referrals = Referral.query.filter_by(
         member_id=member.id
-    ).all()
+    ).order_by(Referral.created_at.desc()).all()
 
     withdrawals = Withdrawal.query.filter_by(
         member_id=member.id
-    ).all()
+    ).order_by(Withdrawal.created_at.desc()).all()
+
+    referral_url = url_for(
+        "referral_lookup",
+        referral_token=member.referral_token,
+        _external=True
+    )
+
+    referral_qr = generate_qr_code(referral_url)
 
     total_rewards = sum(
         (referral.reward for referral in referrals),
@@ -456,6 +591,7 @@ def member_page(invite_code):
         "member.html",
         member=member,
         referrals=referrals,
+        referral_qr=referral_qr,
         withdrawals=withdrawals,
         total_rewards=total_rewards,
         pending_total=pending_total,
@@ -463,12 +599,14 @@ def member_page(invite_code):
     )
 
 
-@app.route("/member/<invite_code>/withdraw", methods=["POST"])
-def member_withdraw(invite_code):
-    member = Member.query.filter_by(invite_code=invite_code).first()
+@app.route("/my/<access_token>/withdraw", methods=["POST"])
+def member_withdraw(access_token):
+    member = Member.query.filter_by(
+        access_token=access_token
+    ).first()
 
     if member is None:
-        return "Member not found", 404
+        return "查询链接无效或已失效", 404
 
     amount_text = request.form.get("amount")
 
@@ -478,19 +616,42 @@ def member_withdraw(invite_code):
 
     except (TypeError, ValueError, InvalidOperation) as error:
         flash(str(error), "error")
+
         return redirect(
-            url_for("member_page", invite_code=invite_code)
+            url_for(
+                "member_portal",
+                access_token=access_token
+            )
         )
 
     flash(
-        f"Withdrawal request submitted successfully! Amount: £{amount:.2f}",
+        f"提现申请已提交：£{amount:.2f}",
         "success"
     )
 
     return redirect(
-        url_for("member_page", invite_code=invite_code)
+        url_for(
+            "member_portal",
+            access_token=access_token
+        )
     )
 
 
+@app.route("/dashboard")
+def dashboard():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
+    return render_template("dashboard.html")
+
+
+@app.route("/scan")
+def scan():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
+    return render_template("scan.html")
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)

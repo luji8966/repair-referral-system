@@ -3,67 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Search</title>
+    <title>搜索会员</title>
 </head>
 
 <body>
 
-    <h1>Member Search</h1>
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
 
-    <form method="GET">
-        <label>Referral Code:</label>
-        <input type="text" name="invite_code" required>
+    <h1>搜索会员</h1>
 
-        <button type="submit">Search</button>
+    <h2>搜索会员</h2>
+
+    <form method="GET" action="{{ url_for('members') }}">
+        <input
+            type="text"
+            name="q"
+            value="{{ query or '' }}"
+            placeholder="输入昵称、手机号、微信号或会员编号"
+            required
+        >
+
+        <button type="submit">搜索</button>
     </form>
+
+    {% if query %}
+
+        <h3>搜索结果</h3>
+
+        {% if search_results %}
+
+            {% for item in search_results %}
+
+                <div>
+                    <p>
+                        <strong>会员编号：</strong>{{ item.id }}
+                    </p>
+
+                    <p>
+                        <strong>昵称：</strong>
+                        {{ item.nickname or "未填写" }}
+                    </p>
+
+                    <p>
+                        <strong>手机号：</strong>
+                        {{ item.phone or "未填写" }}
+                    </p>
+
+                    <p>
+                        <strong>微信号：</strong>
+                        {{ item.wechat or "未填写" }}
+                    </p>
+
+                    <a href="{{ url_for('members', invite_code=item.invite_code) }}">
+                        <button type="button">查看会员</button>
+                    </a>
+
+                    <a href="{{ url_for('staff', invite_code=item.invite_code) }}">
+                        <button type="button">添加返利</button>
+                    </a>
+                </div>
+
+                <hr>
+
+            {% endfor %}
+
+        {% else %}
+
+            <p>没有找到符合条件的会员。</p>
+
+        {% endif %}
+
+    {% endif %}
 
     {% if member %}
 
         <hr>
 
-        <h2>Member Details</h2>
+        <h2>会员详情</h2>
 
-        <p><strong>Member ID:</strong> {{ member.id }}</p>
+        <p><strong>会员编号：</strong> {{ member.id }}</p>
 
-        <p><strong>Referral Code:</strong> {{ member.invite_code }}</p>
+        <p><strong>推荐码：</strong> {{ member.invite_code }}</p>
 
-        <h3>Member QR Code</h3>
+        <h3>会员邀请二维码</h3>
 
         <img
-            src="data:image/png;base64,{{ qr_code }}"
-            alt="Member QR Code"
+            src="data:image/png;base64,{{ referral_qr }}"
+            alt="会员邀请二维码"
             width="200"
             height="200"
         >
 
-        <p><strong>Current Balance:</strong> £{{ "%.2f"|format(member.balance) }}</p>
+        <p><strong>当前余额：</strong> £{{ "%.2f"|format(member.balance) }}</p>
 
         <p>
-            <strong>Pending Withdrawals:</strong>
+            <strong>待处理提现：</strong>
             £{{ "%.2f"|format(pending_total) }}
         </p>
 
         <p>
-            <strong>Available to Withdraw:</strong>
+            <strong>可提现余额：</strong>
             £{{ "%.2f"|format(available_balance) }}
         </p>
 
-        <p><strong>Total Referrals:</strong> {{ total_referrals }}</p>
+        <p><strong>总邀请数：</strong> {{ total_referrals }}</p>
 
-        <p><strong>Total Customer Spend:</strong> £{{ "%.2f"|format(total_spend) }}</p>
+        <p><strong>总客户消费：</strong> £{{ "%.2f"|format(total_spend) }}</p>
 
-        <p><strong>Total Rewards:</strong> £{{ "%.2f"|format(total_rewards) }}</p>
+        <p><strong>总奖励：</strong> £{{ "%.2f"|format(total_rewards) }}</p>
 
         <hr>
 
-        <h2>Referral History</h2>
+        <h2>邀请历史</h2>
 
         <table border="1" cellpadding="8">
             <tr>
                 <th>ID</th>
-                <th>Customer Spend</th>
-                <th>Reward</th>
-                <th>Created At</th>
+                <th>客户消费</th>
+                <th>奖励</th>
+                <th>创建时间</th>
             </tr>
 
             {% for referral in referrals %}
@@ -78,15 +140,15 @@
 
         <hr>
 
-        <h2>Withdrawal History</h2>
+        <h2>提现历史</h2>
 
         <table border="1" cellpadding="8">
             <tr>
                 <th>ID</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Requested At</th>
-                <th>Paid At</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>请求时间</th>
+                <th>支付时间</th>
             </tr>
 
             {% for withdrawal in withdrawals %}
@@ -110,7 +172,7 @@
     {% elif request.args.get("invite_code") %}
 
         <p style="color: red; font-weight: bold;">
-            Member not found.
+            未找到会员。
         </p>
 
     {% endif %}
