@@ -38,24 +38,41 @@
 
     <form method="POST">
 
-        {% if invite_code %}
+        {% if member %}
+
+            <h3>已选择会员</h3>
+
+            <p><strong>会员编号：</strong>{{ member.id }}</p>
 
             <p>
-                <strong>已选择会员：</strong>
-                {{ invite_code }}
+                <strong>昵称：</strong>
+                {{ member.nickname or "未填写" }}
+            </p>
+
+            <p>
+                <strong>手机号：</strong>
+                {{ member.phone or "未填写" }}
+            </p>
+
+            <p>
+                <strong>微信号：</strong>
+                {{ member.wechat or "未填写" }}
+            </p>
+
+            <p>
+                <strong>邀请码：</strong>
+                {{ member.invite_code }}
             </p>
 
             <input
                 type="hidden"
                 name="invite_code"
-                value="{{ invite_code }}"
+                value="{{ member.invite_code }}"
             >
 
         {% else %}
 
-            <p>
-                请先通过「会员管理」搜索会员，或扫描会员的邀请二维码。
-            </p>
+            <p>请先搜索会员或扫描会员邀请二维码。</p>
 
         {% endif %}
 

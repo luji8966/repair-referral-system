@@ -24,18 +24,43 @@
     <div id="reader"></div>
 
     <p>
-        <a href="{{ url_for('dashboard') }}">
-            Back to Dashboard
-        </a>
+        <button
+            id="start-camera"
+            type="button"
+            onclick="startCamera()"
+        >
+            📷 打开摄像头扫码
+        </button>
+
+        <button
+            id="stop-camera"
+            type="button"
+            onclick="stopCamera()"
+            style="display: none;"
+        >
+            关闭摄像头
+        </button>
     </p>
+
+    <p>
+        或者上传二维码图片：
+    </p>
+
+    <input
+        type="file"
+        accept="image/*"
+        onchange="scanImage(event)"
+    >
 
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
-        function onScanSuccess(decodedText) {
+        const html5QrCode = new Html5Qrcode("reader");
+        let scanning = false;
+
+        function handleScannedCode(decodedText) {
             try {
                 const url = new URL(decodedText);
-
                 const parts = url.pathname.split("/").filter(Boolean);
 
                 if (parts.length !== 2 || parts[0] !== "ref") {
@@ -53,20 +78,70 @@
             }
         }
 
-        const scanner = new Html5QrcodeScanner(
-            "reader",
-            {
-                fps: 10,
-                qrbox: {
-                    width: 250,
-                    height: 250
-                },
-                rememberLastUsedCamera: true
-            },
-            false
-        );
+        async function startCamera() {
+            if (scanning) {
+                return;
+            }
 
-        scanner.render(onScanSuccess);
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: {
+                            width: 250,
+                            height: 250
+                        }
+                    },
+                    handleScannedCode
+                );
+
+                scanning = true;
+
+                document.getElementById("start-camera").style.display = "none";
+                document.getElementById("stop-camera").style.display = "inline-block";
+
+            } catch (error) {
+                console.error(error);
+                alert("无法打开摄像头，请检查浏览器摄像头权限。");
+            }
+        }
+
+        async function stopCamera() {
+            if (!scanning) {
+                return;
+            }
+
+            await html5QrCode.stop();
+
+            scanning = false;
+
+            document.getElementById("start-camera").style.display = "inline-block";
+            document.getElementById("stop-camera").style.display = "none";
+        }
+
+        async function scanImage(event) {
+            const file = event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            try {
+                if (scanning) {
+                    await html5QrCode.stop();
+                    scanning = false;
+                }
+
+                const decodedText = await html5QrCode.scanFile(file, true);
+
+                handleScannedCode(decodedText);
+
+            } catch (error) {
+                console.error(error);
+                alert("无法识别这张图片中的二维码。");
+            }
+        }
     </script>
 
 </body>

@@ -320,6 +320,7 @@ def staff():
         )
 
     referrals = []
+    member = None
 
     if invite_code:
         member = Member.query.filter_by(
@@ -336,7 +337,8 @@ def staff():
     return render_template(
         "staff.html",
         referrals=referrals,
-        invite_code=invite_code
+        invite_code=invite_code,
+        member = member
     )
 
 
