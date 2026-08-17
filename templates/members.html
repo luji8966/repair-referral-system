@@ -98,6 +98,24 @@
             height="200"
         >
 
+        <h3>会员专属查询链接</h3>
+
+        <input
+            id="member-private-link"
+            type="text"
+            value="{{ member_private_url }}"
+            readonly
+            style="width: 100%; max-width: 600px;"
+        >
+
+        <p>
+            <button type="button" onclick="copyMemberPrivateLink()">
+                复制会员查询链接
+            </button>
+        </p>
+
+        <p id="copy-link-message"></p>
+
         <p><strong>当前余额：</strong> £{{ "%.2f"|format(member.balance) }}</p>
 
         <p>
@@ -176,6 +194,20 @@
         </p>
 
     {% endif %}
+
+    <script>
+        function copyMemberPrivateLink() {
+            const link = document.getElementById("member-private-link").value;
+
+            navigator.clipboard.writeText(link).then(function() {
+                document.getElementById("copy-link-message").textContent =
+                    "查询链接已复制";
+            }).catch(function() {
+                document.getElementById("copy-link-message").textContent =
+                    "复制失败，请手动复制";
+            });
+        }
+    </script>
 
 </body>
 </html>

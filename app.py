@@ -20,7 +20,12 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
 
 # Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///referral.db"
+database_url = os.getenv("DATABASE_URL")
+
+if database_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///referral.db"
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -347,6 +352,7 @@ def members():
     referrals = []
     withdrawals = []
     referral_qr = None
+    member_private_url = None
 
     search_results = []
 
@@ -388,6 +394,12 @@ def members():
 
             referral_qr = generate_qr_code(referral_url)
 
+            member_private_url = url_for(
+                "member_portal",
+                access_token=member.access_token,
+                _external=True
+            )
+
             total_referrals = len(referrals)
             total_spend = sum(referral.amount for referral in referrals)
             total_rewards = sum(referral.reward for referral in referrals)
@@ -408,6 +420,7 @@ def members():
         member=member,
         referrals=referrals,
         referral_qr=referral_qr,
+        member_private_url=member_private_url,
         search_results=search_results,
         query=query,
         withdrawals=withdrawals,
