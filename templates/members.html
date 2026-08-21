@@ -98,6 +98,14 @@
             height="200"
         >
 
+        <p>
+            <a href="{{ url_for('referral_poster', referral_token=member.referral_token) }}">
+                <button type="button">
+                    生成邀请海报
+                </button>
+            </a>
+        </p>
+
         <h3>会员专属查询链接</h3>
 
         <input
@@ -116,23 +124,23 @@
 
         <p id="copy-link-message"></p>
 
-        <p><strong>当前余额：</strong> £{{ "%.2f"|format(member.balance) }}</p>
+        <p><strong>当前余额：</strong> ¥{{ "%.2f"|format(member.balance) }}</p>
 
         <p>
             <strong>待处理提现：</strong>
-            £{{ "%.2f"|format(pending_total) }}
+            ¥{{ "%.2f"|format(pending_total) }}
         </p>
 
         <p>
             <strong>可提现余额：</strong>
-            £{{ "%.2f"|format(available_balance) }}
+            ¥{{ "%.2f"|format(available_balance) }}
         </p>
 
         <p><strong>总邀请数：</strong> {{ total_referrals }}</p>
 
         <p><strong>总客户消费：</strong> £{{ "%.2f"|format(total_spend) }}</p>
 
-        <p><strong>总奖励：</strong> £{{ "%.2f"|format(total_rewards) }}</p>
+        <p><strong>总奖励：</strong> ¥{{ "%.2f"|format(total_rewards) }}</p>
 
         <hr>
 
@@ -150,7 +158,7 @@
             <tr>
                 <td>{{ referral.id }}</td>
                 <td>£{{ "%.2f"|format(referral.amount) }}</td>
-                <td>£{{ "%.2f"|format(referral.reward) }}</td>
+                <td>¥{{ "%.2f"|format(referral.reward) }}</td>
                 <td>{{ format_uk_time(referral.created_at) }}</td>
             </tr>
             {% endfor %}
@@ -172,7 +180,7 @@
             {% for withdrawal in withdrawals %}
             <tr>
                 <td>{{ withdrawal.id }}</td>
-                <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+                <td>¥{{ "%.2f"|format(withdrawal.amount) }}</td>
                 <td>{{ withdrawal.status }}</td>
                 <td>{{ format_uk_time(withdrawal.created_at) }}</td>
 
@@ -196,17 +204,43 @@
     {% endif %}
 
     <script>
-        function copyMemberPrivateLink() {
-            const link = document.getElementById("member-private-link").value;
+    function copyMemberPrivateLink() {
+        const input = document.getElementById("member-private-link");
+        const message = document.getElementById("copy-link-message");
 
-            navigator.clipboard.writeText(link).then(function() {
-                document.getElementById("copy-link-message").textContent =
-                    "查询链接已复制";
-            }).catch(function() {
-                document.getElementById("copy-link-message").textContent =
-                    "复制失败，请手动复制";
-            });
+        // HTTPS / localhost 优先使用现代 Clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(input.value)
+                .then(function () {
+                    message.textContent = "查询链接已复制";
+                })
+                .catch(function () {
+                    fallbackCopy();
+                });
+        } else {
+            fallbackCopy();
         }
+
+        function fallbackCopy() {
+            input.focus();
+            input.select();
+            input.setSelectionRange(0, 99999);
+
+            try {
+                const successful = document.execCommand("copy");
+
+                if (successful) {
+                    message.textContent = "查询链接已复制";
+                } else {
+                    message.textContent = "复制失败，请手动复制";
+                }
+            } catch (error) {
+                message.textContent = "复制失败，请手动复制";
+            }
+
+            window.getSelection().removeAllRanges();
+        }
+    }
     </script>
 
 </body>

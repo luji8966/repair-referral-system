@@ -99,6 +99,11 @@
 
 <body>
     <div class="container">
+        <p>
+            <a href="{{ url_for('dashboard') }}">
+                <button type="button">← 返回控制台</button>
+            </a>
+        </p>
 
         <h1>我的返利</h1>
 
@@ -150,24 +155,36 @@
         >
 
         <p>
+            <a href="{{ url_for('referral_poster', referral_token=member.referral_token) }}">
+                <button type="button">
+                    生成邀请海报
+                </button>
+            </a>
+        </p>
+
+        <p>
             <strong>总奖励:</strong>
-            £{{ "%.2f"|format(total_rewards) }}
+            ¥{{ "%.2f"|format(total_rewards) }}
         </p>
 
         <p>
             <strong>余额:</strong>
-            £{{ "%.2f"|format(member.balance) }}
+            ¥{{ "%.2f"|format(member.balance) }}
+        </p>
+
+        <p>
+            <small>具体返现金额以门店现场确认为准。</small>
         </p>
 
         <p>
             <strong>待处理提现:</strong>
-            £{{ "%.2f"|format(pending_total) }}
+            ¥{{ "%.2f"|format(pending_total) }}
         </p>
 
         <div class="balance-card">
             <div class="balance-label">可提现余额</div>
             <div class="balance-amount">
-                £{{ "%.2f"|format(available_balance) }}
+                ¥{{ "%.2f"|format(available_balance) }}
             </div>
         </div>
 
@@ -177,7 +194,7 @@
 
         <form method="POST"
       action="{{ url_for('member_withdraw', access_token=member.access_token) }}">
-            <label>金额 (£):</label>
+            <label>金额 (¥):</label>
 
             <input
                 type="number"
@@ -201,16 +218,14 @@
         {% if referrals %}
             <table border="1" cellpadding="8">
                 <tr>
-                    <th>客户消费</th>
-                    <th>奖励</th>
                     <th>日期</th>
+                    <th>奖励金额</th>
                 </tr>
 
                 {% for referral in referrals %}
                 <tr>
-                    <td>£{{ "%.2f"|format(referral.amount) }}</td>
-                    <td>£{{ "%.2f"|format(referral.reward) }}</td>
                     <td>{{ format_uk_time(referral.created_at) }}</td>
+                    <td>¥{{ "%.2f"|format(referral.reward) }}</td>
                 </tr>
                 {% endfor %}
             </table>
@@ -225,7 +240,7 @@
             {% if withdrawals %}
                 <table border="1" cellpadding="8">
                     <tr>
-                        <th>金额 (£)</th>
+                        <th>金额 (¥)</th>
                         <th>状态</th>
                         <th>申请时间</th>
                         <th>支付时间</th>
@@ -233,7 +248,7 @@
 
                     {% for withdrawal in withdrawals %}
                     <tr>
-                        <td>£{{ "%.2f"|format(withdrawal.amount) }}</td>
+                        <td>¥{{ "%.2f"|format(withdrawal.amount) }}</td>
                         <td>{{ withdrawal.status }}</td>
                         <td>{{ format_uk_time(withdrawal.created_at) }}</td>
                         <td>{{ format_uk_time(withdrawal.paid_at) }}</td>

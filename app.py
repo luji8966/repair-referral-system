@@ -169,8 +169,9 @@ def create_member(openid=None, nickname=None, phone=None, wechat=None):
     return member
 
 
-def add_referral(member, amount, reward_rate=Decimal("0.05")):
-    reward = (amount * reward_rate).quantize(Decimal("0.01"))
+def add_referral(member, amount, reward):
+    amount = amount.quantize(Decimal("0.01"))
+    reward = reward.quantize(Decimal("0.01"))
 
     referral = Referral(
         member_id=member.id,
@@ -289,13 +290,33 @@ def staff():
 
         try:
             amount = Decimal(request.form["amount"])
+            reward = Decimal(request.form["reward"])
         except (TypeError, ValueError, InvalidOperation):
-            flash("Please enter a valid customer spend amount.", "error")
-            return redirect(url_for("staff"))
+            flash("请输入正确的消费金额和返利金额。", "error")
+            return redirect(
+                url_for(
+                    "staff",
+                    invite_code=invite_code
+                )
+            )
 
         if amount <= 0:
-            flash("Customer spend must be greater than £0.", "error")
-            return redirect(url_for("staff"))
+            flash("客户消费金额必须大于 £0。", "error")
+            return redirect(
+                url_for(
+                    "staff",
+                    invite_code=invite_code
+                )
+            )
+
+        if reward < 0:
+            flash("返利金额不能小于 ¥0。", "error")
+            return redirect(
+                url_for(
+                    "staff",
+                    invite_code=invite_code
+                )
+            )
 
         member = Member.query.filter_by(invite_code=invite_code).first()
 
@@ -303,14 +324,14 @@ def staff():
             flash("Referral code not found.", "error")
             return redirect(url_for("staff"))
 
-        referral = add_referral(member, amount)
+        referral = add_referral(member, amount, reward)
 
         flash(
-            f"Referral added successfully! "
-            f"Reward: £{referral.reward:.2f} | "
-            f"New balance: £{member.balance:.2f}",
+            f"返利添加成功！"
+            f"本次返利：¥{referral.reward:.2f} | "
+            f"会员当前余额：¥{member.balance:.2f}",
             "success"
-        )
+        ) 
 
         return redirect(
             url_for(
@@ -649,6 +670,30 @@ def member_withdraw(access_token):
             "member_portal",
             access_token=access_token
         )
+    )
+
+
+@app.route("/poster/<referral_token>")
+def referral_poster(referral_token):
+    member = Member.query.filter_by(
+        referral_token=referral_token
+    ).first()
+
+    if not member:
+        return "推荐二维码无效", 404
+
+    referral_url = url_for(
+        "referral_lookup",
+        referral_token=member.referral_token,
+        _external=True
+    )
+
+    referral_qr = generate_qr_code(referral_url)
+
+    return render_template(
+        "poster.html",
+        member=member,
+        referral_qr=referral_qr
     )
 
 

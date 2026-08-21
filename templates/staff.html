@@ -78,8 +78,31 @@
 
         <br><br>
 
-        <label>客户消费 (£):</label>
-        <input type="number" name="amount" step="0.01" min="0.01" required>
+        <label for="amount">客户本次消费金额（员工记账）£</label>
+        <input
+            type="number"
+            id="amount"
+            name="amount"
+            step="0.01"
+            min="0.01"
+            required
+        >
+
+        <p>
+            <label for="reward">
+                <strong>本次返利金额 ¥</strong>
+            </label>
+        </p>
+
+        <input
+            type="number"
+            id="reward"
+            name="reward"
+            step="0.01"
+            min="0"
+            placeholder="由员工现场填写"
+            required
+        >
 
         <br><br>
 
@@ -105,7 +128,7 @@
             <td>{{ referral.id }}</td>
             <td>{{ referral.member_id }}</td>
             <td>£{{ "%.2f"|format(referral.amount) }}</td>
-            <td>£{{ "%.2f"|format(referral.reward) }}</td>
+            <td>¥{{ "%.2f"|format(referral.reward) }}</td>
             <td>{{ format_uk_time(referral.created_at) }}</td>
         </tr>
         {% endfor %}

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>邀请好友到店维修</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px 12px 40px;
+            background: #eeeeee;
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 14px;
+        }
+
+        #posterCanvas {
+            display: none;
+        }
+
+        #posterImage {
+            display: block;
+            width: 100%;
+            max-width: 430px;
+            height: auto;
+            margin: 0 auto;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        .save-tip {
+            margin: 18px auto 0;
+            max-width: 430px;
+            font-size: 15px;
+            color: #555;
+            line-height: 1.7;
+        }
+
+        #qrSource {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page-title">
+        我的专属邀请海报
+    </div>
+
+    <!-- 用来生成最终海报 -->
+    <canvas
+        id="posterCanvas"
+        width="1080"
+        height="1600">
+    </canvas>
+
+    <!-- 最终真正显示给会员的是这张图片 -->
+    <img
+        id="posterImage"
+        alt="邀请好友到店维修海报"
+    >
+
+    <!-- 当前会员自己的二维码 -->
+    <img
+        id="qrSource"
+        src="data:image/png;base64,{{ referral_qr }}"
+        alt="专属邀请二维码"
+    >
+
+    <div class="save-tip">
+        长按上方海报即可保存图片<br>
+        可发送给好友或分享到朋友圈
+    </div>
+
+
+<script>
+
+const qrImage = document.getElementById("qrSource");
+
+qrImage.onload = function () {
+
+    const canvas = document.getElementById("posterCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+
+    // =========================
+    // 背景
+    // =========================
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+
+    gradient.addColorStop(0, "#ef2b1f");
+    gradient.addColorStop(0.38, "#ff5a28");
+    gradient.addColorStop(0.72, "#ffb84d");
+    gradient.addColorStop(1, "#b91416");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+
+
+    // =========================
+    // 顶部装饰光线
+    // =========================
+
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = "#fff3b0";
+
+    for (let i = -500; i < 1500; i += 180) {
+
+        ctx.beginPath();
+        ctx.moveTo(W / 2, 300);
+        ctx.lineTo(i, 0);
+        ctx.lineTo(i + 100, 0);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    ctx.restore();
+
+
+    // =========================
+    // 顶部横幅
+    // =========================
+
+    roundRect(
+        ctx,
+        130,
+        55,
+        820,
+        110,
+        55,
+        "#c71919"
+    );
+
+    ctx.strokeStyle = "#ffd76a";
+    ctx.lineWidth = 6;
+
+    roundRectStroke(
+        ctx,
+        130,
+        55,
+        820,
+        110,
+        55
+    );
+
+    ctx.fillStyle = "#fff4c4";
+    ctx.textAlign = "center";
+    ctx.font = "bold 42px Microsoft YaHei";
+
+    ctx.fillText(
+        "★ 推荐好友 · 领取邀请红包 ★",
+        W / 2,
+        125
+    );
+
+
+    // =========================
+    // 主标题
+    // =========================
+
+    ctx.shadowColor = "rgba(120,0,0,0.35)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 7;
+
+    ctx.fillStyle = "#fff7d7";
+    ctx.font = "bold 76px Microsoft YaHei";
+
+    ctx.fillText(
+        "邀请好友到店维修",
+        W / 2,
+        270
+    );
+
+    ctx.shadowColor = "transparent";
+
+
+    // 副标题
+
+    ctx.fillStyle = "#7b1b13";
+    ctx.font = "bold 34px Microsoft YaHei";
+
+    ctx.fillText(
+        "一起分享优惠 · 惊喜红包领不停",
+        W / 2,
+        335
+    );
+
+
+    // =========================
+    // 红包奖励区域
+    // =========================
+
+    roundRect(
+        ctx,
+        130,
+        385,
+        820,
+        320,
+        45,
+        "#d91f1f"
+    );
+
+    ctx.strokeStyle = "#ffd45a";
+    ctx.lineWidth = 10;
+
+    roundRectStroke(
+        ctx,
+        130,
+        385,
+        820,
+        320,
+        45
+    );
+
+
+    ctx.fillStyle = "#fff3cc";
+    ctx.font = "bold 46px Microsoft YaHei";
+
+    ctx.fillText(
+        "最高邀请红包",
+        W / 2,
+        465
+    );
+
+
+    // ¥100
+
+    ctx.fillStyle = "#ffd43b";
+    ctx.shadowColor = "rgba(80,0,0,0.4)";
+    ctx.shadowBlur = 8;
+
+    ctx.font = "bold 145px Arial";
+
+    ctx.fillText(
+        "¥100",
+        W / 2,
+        615
+    );
+
+    ctx.shadowColor = "transparent";
+
+
+    // 优先维修服务
+
+    roundRect(
+        ctx,
+        285,
+        635,
+        510,
+        55,
+        27,
+        "#fff1bc"
+    );
+
+    ctx.fillStyle = "#b41c16";
+    ctx.font = "bold 30px Microsoft YaHei";
+
+    ctx.fillText(
+        "凭此码可享受优先维修服务",
+        W / 2,
+        674
+    );
+
+
+    // =========================
+    // 二维码白色卡片
+    // =========================
+
+    roundRect(
+        ctx,
+        225,
+        750,
+        630,
+        500,
+        38,
+        "#ffffff"
+    );
+
+    ctx.strokeStyle = "#ffb238";
+    ctx.lineWidth = 5;
+
+    roundRectStroke(
+        ctx,
+        225,
+        750,
+        630,
+        500,
+        38
+    );
+
+
+    // 二维码
+
+    ctx.imageSmoothingEnabled = false;
+
+    ctx.drawImage(
+        qrImage,
+        340,
+        790,
+        400,
+        400
+    );
+
+
+    // =========================
+    // 扫码提示
+    // =========================
+
+    ctx.fillStyle = "#c51d19";
+    ctx.font = "bold 34px Microsoft YaHei";
+
+    ctx.fillText(
+        "长按识别二维码",
+        W / 2,
+        1220
+    );
+
+
+    // =========================
+    // 门店介绍
+    // =========================
+
+    ctx.fillStyle = "#fff5d5";
+    ctx.font = "bold 40px Microsoft YaHei";
+
+    ctx.fillText(
+        "CMLINK 中国移动营业厅",
+        W / 2,
+        1320
+    );
+
+    ctx.font = "bold 34px Microsoft YaHei";
+
+    ctx.fillText(
+        "电脑手机维修中心",
+        W / 2,
+        1370
+    );
+
+
+    // 地址
+
+    ctx.font = "28px Microsoft YaHei";
+
+    ctx.fillText(
+        "📍 伦敦唐人街 · Shaftesbury Avenue",
+        W / 2,
+        1425
+    );
+
+
+    // =========================
+    // 底部卖点
+    // =========================
+
+    ctx.fillStyle = "#ffd45a";
+    ctx.font = "bold 27px Microsoft YaHei";
+
+    ctx.fillText(
+        "✓ 专业服务   ·   ✓ 价格实惠   ·   ✓ 快速高效   ·   ✓ 值得信赖",
+        W / 2,
+        1500
+    );
+
+
+    ctx.fillStyle = "#fff4d0";
+    ctx.font = "25px Microsoft YaHei";
+
+    ctx.fillText(
+        "推荐好友到店 · 分享优惠 · 获取邀请红包",
+        W / 2,
+        1550
+    );
+
+
+    // =========================
+    // Canvas 转真正 PNG
+    // =========================
+
+    const posterImage =
+        document.getElementById("posterImage");
+
+    posterImage.src =
+        canvas.toDataURL("image/png");
+
+};
+
+
+// =========================
+// 圆角矩形工具
+// =========================
+
+function roundRect(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    radius,
+    color
+) {
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x,
+        y,
+        width,
+        height,
+        radius
+    );
+
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+
+function roundRectStroke(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    radius
+) {
+
+    ctx.beginPath();
+
+    ctx.roundRect(
+        x,
+        y,
+        width,
+        height,
+        radius
+    );
+
+    ctx.stroke();
+}
+
+</script>
+
+</body>
+</html>
