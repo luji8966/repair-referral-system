@@ -99,9 +99,39 @@
             {% endif %}
         </p>
 
-        <p><strong>会员编号：</strong> {{ member.id }}</p>
+        <p>
+            <strong>会员编号：</strong>
+            {{ member.id }}
+        </p>
 
-        <p><strong>推荐码：</strong> {{ member.invite_code }}</p>
+        <p>
+            <strong>昵称：</strong>
+            {{ member.nickname or "未填写" }}
+        </p>
+
+        <p>
+            <strong>手机号：</strong>
+            {{ member.phone or "未填写" }}
+        </p>
+
+        <p>
+            <strong>微信号：</strong>
+            {{ member.wechat or "未填写" }}
+        </p>
+
+        <p>
+            <strong>创建时间：</strong>
+            {% if member.created_at %}
+                {{ format_uk_time(member.created_at) }}
+            {% else %}
+                -
+            {% endif %}
+        </p>
+
+        <p>
+            <strong>推荐码：</strong>
+            {{ member.invite_code }}
+        </p>
 
         {% if member.is_active %}
 
