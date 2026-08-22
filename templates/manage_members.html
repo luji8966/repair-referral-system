@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>会员管理</title>
+
+    <style>
+        body {
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            margin: 20px;
+        }
+
+        .filters {
+            margin: 20px 0;
+        }
+
+        .filters a {
+            margin-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: #f3f3f3;
+        }
+
+        .active {
+            color: green;
+            font-weight: bold;
+        }
+
+        .inactive {
+            color: #999;
+            font-weight: bold;
+        }
+
+        @media (max-width: 700px) {
+            table {
+                font-size: 13px;
+            }
+
+            th,
+            td {
+                padding: 6px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <p>
+        <a href="{{ url_for('dashboard') }}">
+            <button type="button">← 返回控制台</button>
+        </a>
+    </p>
+
+    <h1>会员管理</h1>
+
+    <form method="GET" action="{{ url_for('manage_members') }}">
+
+        <p>
+            <strong>搜索会员：</strong>
+        </p>
+
+        <input
+            type="text"
+            name="q"
+            value="{{ keyword or '' }}"
+            placeholder="昵称、手机号、微信号或会员编号"
+            style="width: 280px; padding: 8px;"
+        >
+
+        <p>
+            <strong>会员状态：</strong>
+
+            <select name="status">
+                <option value="all"
+                    {% if status == "all" %}selected{% endif %}>
+                    全部
+                </option>
+
+                <option value="active"
+                    {% if status == "active" %}selected{% endif %}>
+                    正常会员
+                </option>
+
+                <option value="inactive"
+                    {% if status == "inactive" %}selected{% endif %}>
+                    已停用会员
+                </option>
+            </select>
+        </p>
+
+        <p>
+            <strong>余额：</strong>
+
+            <select name="balance">
+                <option value="all"
+                    {% if balance_filter == "all" %}selected{% endif %}>
+                    全部
+                </option>
+
+                <option value="positive"
+                    {% if balance_filter == "positive" %}selected{% endif %}>
+                    有余额
+                </option>
+
+                <option value="zero"
+                    {% if balance_filter == "zero" %}selected{% endif %}>
+                    余额为 0
+                </option>
+            </select>
+        </p>
+
+        <p>
+            <strong>创建日期：</strong>
+
+            <input
+                type="date"
+                name="date_from"
+                value="{{ date_from }}"
+            >
+
+            至
+
+            <input
+                type="date"
+                name="date_to"
+                value="{{ date_to }}"
+            >
+        </p>
+
+        <button type="submit">
+            搜索 / 筛选
+        </button>
+
+        <a href="{{ url_for('manage_members') }}">
+            <button type="button">
+                清除筛选
+            </button>
+        </a>
+
+    </form>
+
+    <p>
+        共找到 <strong>{{ members|length }}</strong> 位会员
+    </p>
+
+
+    {% if members %}
+
+        <form
+            method="POST"
+            action="{{ url_for('bulk_member_status') }}"
+            id="bulk-member-form"
+        >
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>
+                            <input
+                                type="checkbox"
+                                id="select-all"
+                                onclick="toggleSelectAll(this)"
+                            >
+                        </th>
+                        <th>编号</th>
+                        <th>昵称</th>
+                        <th>手机号</th>
+                        <th>微信号</th>
+                        <th>余额</th>
+                        <th>创建时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for member in members %}
+
+                    <tr>
+
+                        <td>
+                            <input
+                                type="checkbox"
+                                name="member_ids"
+                                value="{{ member.id }}"
+                                class="member-checkbox"
+                            >
+                        </td>
+
+                        <td>{{ member.id }}</td>
+
+                        <td>
+                            {{ member.nickname or "未填写" }}
+                        </td>
+
+                        <td>
+                            {{ member.phone or "未填写" }}
+                        </td>
+
+                        <td>
+                            {{ member.wechat or "未填写" }}
+                        </td>
+
+                        <td>
+                            ¥{{ "%.2f"|format(member.balance) }}
+                        </td>
+
+                        <td>
+                            {% if member.created_at %}
+                                {{ member.created_at.strftime("%d/%m/%Y %H:%M") }}
+                            {% else %}
+                                旧会员
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if member.is_active %}
+                                <span class="active">正常</span>
+                            {% else %}
+                                <span class="inactive">已停用</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+
+                            <a href="{{ url_for('members', invite_code=member.invite_code) }}">
+                                <button type="button">
+                                    查看会员
+                                </button>
+                            </a>
+
+                            {% if member.is_active %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('toggle_member_active', member_id=member.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('确定要停用这个会员吗？\n\n会员历史数据不会删除，但停用后将不能继续正常使用会员功能。');"
+                                >
+                                    <button type="submit">
+                                        停用会员
+                                    </button>
+                                </form>
+
+                            {% else %}
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for('toggle_member_active', member_id=member.id) }}"
+                                    style="display:inline;"
+                                    onsubmit="return confirm('确定要恢复这个会员吗？');"
+                                >
+                                    <button type="submit">
+                                        恢复会员
+                                    </button>
+                                </form>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            <div style="margin-top: 20px;">
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="deactivate"
+                    onclick="return confirmBulkAction('停用')"
+                >
+                    批量停用所选会员
+                </button>
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="activate"
+                    onclick="return confirmBulkAction('恢复')"
+                >
+                    批量恢复所选会员
+                </button>
+
+            </div>
+
+        </form>
+
+    {% else %}
+
+        <p>暂无会员。</p>
+
+    {% endif %}
+
+    <script>
+        function toggleSelectAll(source) {
+            const checkboxes =
+                document.querySelectorAll(".member-checkbox");
+
+            checkboxes.forEach(function(checkbox) {
+                checkbox.checked = source.checked;
+            });
+        }
+
+        function confirmBulkAction(actionName) {
+            const checked =
+                document.querySelectorAll(
+                    ".member-checkbox:checked"
+                );
+
+            if (checked.length === 0) {
+                alert("请至少选择一个会员。");
+                return false;
+            }
+
+            return confirm(
+                "确定要" +
+                actionName +
+                "所选的 " +
+                checked.length +
+                " 位会员吗？"
+            );
+        }
+    </script>
+
+</body>
+</html>

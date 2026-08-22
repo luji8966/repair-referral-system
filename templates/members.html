@@ -85,9 +85,41 @@
 
         <h2>会员详情</h2>
 
+        <p>
+            <strong>会员状态：</strong>
+
+            {% if member.is_active %}
+                <span style="color: green; font-weight: bold;">
+                    正常
+                </span>
+            {% else %}
+                <span style="color: red; font-weight: bold;">
+                    已停用
+                </span>
+            {% endif %}
+        </p>
+
         <p><strong>会员编号：</strong> {{ member.id }}</p>
 
         <p><strong>推荐码：</strong> {{ member.invite_code }}</p>
+
+        {% if member.is_active %}
+
+            <p>
+                <a href="{{ url_for('staff', invite_code=member.invite_code) }}">
+                    <button type="button">
+                        + 添加返利
+                    </button>
+                </a>
+            </p>
+
+        {% else %}
+
+            <p style="color: red; font-weight: bold;">
+                ⚠ 该会员已停用，暂时不能添加返利。
+            </p>
+
+        {% endif %}
 
         <h3>会员邀请二维码</h3>
 

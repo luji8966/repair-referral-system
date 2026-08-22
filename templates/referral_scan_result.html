@@ -41,9 +41,36 @@
         {{ member.invite_code }}
     </p>
 
-    <a href="{{ url_for('staff', invite_code=member.invite_code) }}">
-        <button type="button">录入本次消费</button>
-    </a>
+    <p>
+        <strong>会员状态：</strong>
+
+        {% if member.is_active %}
+            <span style="color: green; font-weight: bold;">
+                正常
+            </span>
+        {% else %}
+            <span style="color: red; font-weight: bold;">
+                已停用
+            </span>
+        {% endif %}
+    </p>
+
+
+    {% if member.is_active %}
+
+        <a href="{{ url_for('staff', invite_code=member.invite_code) }}">
+            <button type="button">
+                录入本次消费
+            </button>
+        </a>
+
+    {% else %}
+
+        <p style="color: red; font-weight: bold;">
+            ⚠ 该会员已停用，无法继续录入返利。
+        </p>
+
+    {% endif %}
 
 </body>
 </html>

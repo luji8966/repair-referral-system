@@ -78,6 +78,18 @@ class Member(db.Model):
         nullable=False
     )
 
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=True
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True
+    )
+
 
 class Referral(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -324,6 +336,10 @@ def staff():
             flash("Referral code not found.", "error")
             return redirect(url_for("staff"))
 
+        if not member.is_active:
+            flash("该会员已停用，无法录入新的返利。", "error")
+            return redirect(url_for("staff"))
+
         referral = add_referral(member, amount, reward)
 
         flash(
@@ -455,6 +471,160 @@ def members():
     )
 
 
+@app.route("/members/manage")
+def manage_members():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
+    keyword = request.args.get("q", "").strip()
+    status = request.args.get("status", "all")
+    balance_filter = request.args.get("balance", "all")
+    date_from = request.args.get("date_from", "").strip()
+    date_to = request.args.get("date_to", "").strip()
+
+    query = Member.query
+
+    # 关键词搜索
+    if keyword:
+        filters = [
+            Member.nickname.ilike(f"%{keyword}%"),
+            Member.phone.ilike(f"%{keyword}%"),
+            Member.wechat.ilike(f"%{keyword}%")
+        ]
+
+        if keyword.isdigit():
+            filters.append(Member.id == int(keyword))
+
+        query = query.filter(db.or_(*filters))
+
+    # 状态筛选
+    if status == "active":
+        query = query.filter(Member.is_active.is_(True))
+
+    elif status == "inactive":
+        query = query.filter(Member.is_active.is_(False))
+
+    # 余额筛选
+    if balance_filter == "positive":
+        query = query.filter(Member.balance > 0)
+
+    elif balance_filter == "zero":
+        query = query.filter(Member.balance == 0)
+
+    # 创建日期筛选
+    if date_from:
+        try:
+            start_date = datetime.strptime(
+                date_from,
+                "%Y-%m-%d"
+            )
+            query = query.filter(
+                Member.created_at >= start_date
+            )
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            end_date = datetime.strptime(
+                date_to,
+                "%Y-%m-%d"
+            )
+
+            end_date = end_date.replace(
+                hour=23,
+                minute=59,
+                second=59
+            )
+
+            query = query.filter(
+                Member.created_at <= end_date
+            )
+        except ValueError:
+            pass
+
+    members = query.order_by(
+        Member.id.desc()
+    ).all()
+
+    return render_template(
+        "manage_members.html",
+        members=members,
+        keyword=keyword,
+        status=status,
+        balance_filter=balance_filter,
+        date_from=date_from,
+        date_to=date_to
+    )
+
+
+@app.route("/members/<int:member_id>/toggle-active", methods=["POST"])
+def toggle_member_active(member_id):
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
+    member = db.session.get(Member, member_id)
+
+    if not member:
+        flash("会员不存在。", "error")
+        return redirect(url_for("manage_members"))
+
+    member.is_active = not member.is_active
+    db.session.commit()
+
+    if member.is_active:
+        flash(
+            f"会员 #{member.id} 已恢复使用。",
+            "success"
+        )
+    else:
+        flash(
+            f"会员 #{member.id} 已停用。",
+            "success"
+        )
+
+    return redirect(url_for("manage_members"))
+
+
+@app.route("/members/bulk-status", methods=["POST"])
+def bulk_member_status():
+    if not session.get("staff_logged_in"):
+        return redirect(url_for("login"))
+
+    member_ids = request.form.getlist("member_ids")
+    action = request.form.get("action")
+
+    if not member_ids:
+        flash("请至少选择一个会员。", "error")
+        return redirect(url_for("manage_members"))
+
+    if action not in ["deactivate", "activate"]:
+        flash("无效的批量操作。", "error")
+        return redirect(url_for("manage_members"))
+
+    members = Member.query.filter(
+        Member.id.in_(member_ids)
+    ).all()
+
+    if action == "deactivate":
+        for member in members:
+            member.is_active = False
+
+        message = f"已停用 {len(members)} 位会员。"
+
+    else:
+        for member in members:
+            member.is_active = True
+
+        message = f"已恢复 {len(members)} 位会员。"
+
+    db.session.commit()
+
+    flash(message, "success")
+
+    return redirect(url_for("manage_members"))
+
+
 @app.route("/members/create", methods=["GET", "POST"])
 def create_member_page():
     if not session.get("staff_logged_in"):
@@ -490,6 +660,109 @@ def create_member_page():
         )
 
     return render_template("create_member.html")
+
+
+@app.route("/my/<access_token>")
+def member_portal(access_token):
+    member = Member.query.filter_by(
+        access_token=access_token
+    ).first()
+
+    if not member:
+        return "查询链接无效或已失效", 404
+
+    if not member.is_active:
+        return render_template(
+            "member_inactive.html",
+            member=member
+        )
+
+    referrals = Referral.query.filter_by(
+        member_id=member.id
+    ).order_by(Referral.created_at.desc()).all()
+
+    withdrawals = Withdrawal.query.filter_by(
+        member_id=member.id
+    ).order_by(Withdrawal.created_at.desc()).all()
+
+    referral_url = url_for(
+        "referral_lookup",
+        referral_token=member.referral_token,
+        _external=True
+    )
+
+    referral_qr = generate_qr_code(referral_url)
+
+    total_rewards = sum(
+        (referral.reward for referral in referrals),
+        Decimal("0.00")
+    )
+
+    pending_total = sum(
+        (
+            withdrawal.amount
+            for withdrawal in withdrawals
+            if withdrawal.status == "pending"
+        ),
+        Decimal("0.00")
+    )
+
+    available_balance = member.balance - pending_total
+
+    return render_template(
+        "member.html",
+        member=member,
+        referrals=referrals,
+        referral_qr=referral_qr,
+        withdrawals=withdrawals,
+        total_rewards=total_rewards,
+        pending_total=pending_total,
+        available_balance=available_balance
+    )
+
+
+@app.route("/my/<access_token>/withdraw", methods=["POST"])
+def member_withdraw(access_token):
+    member = Member.query.filter_by(
+        access_token=access_token
+    ).first()
+
+    if member is None:
+        return "查询链接无效或已失效", 404
+
+    if not member.is_active:
+        return render_template(
+            "member_inactive.html",
+            member=member
+        )
+
+    amount_text = request.form.get("amount")
+
+    try:
+        amount = Decimal(amount_text)
+        create_withdrawal(member, amount)
+
+    except (TypeError, ValueError, InvalidOperation) as error:
+        flash(str(error), "error")
+
+        return redirect(
+            url_for(
+                "member_portal",
+                access_token=access_token
+            )
+        )
+
+    flash(
+        f"提现申请已提交：¥{amount:.2f}",
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "member_portal",
+            access_token=access_token
+        )
+    )
 
 
 @app.route("/ref/<referral_token>")
@@ -580,97 +853,6 @@ def login():
 def logout():
     session.pop("staff_logged_in", None)
     return redirect(url_for("login"))
-
-
-@app.route("/my/<access_token>")
-def member_portal(access_token):
-    member = Member.query.filter_by(
-        access_token=access_token
-    ).first()
-
-    if not member:
-        return "查询链接无效或已失效", 404
-
-    referrals = Referral.query.filter_by(
-        member_id=member.id
-    ).order_by(Referral.created_at.desc()).all()
-
-    withdrawals = Withdrawal.query.filter_by(
-        member_id=member.id
-    ).order_by(Withdrawal.created_at.desc()).all()
-
-    referral_url = url_for(
-        "referral_lookup",
-        referral_token=member.referral_token,
-        _external=True
-    )
-
-    referral_qr = generate_qr_code(referral_url)
-
-    total_rewards = sum(
-        (referral.reward for referral in referrals),
-        Decimal("0.00")
-    )
-
-    pending_total = sum(
-        (
-            withdrawal.amount
-            for withdrawal in withdrawals
-            if withdrawal.status == "pending"
-        ),
-        Decimal("0.00")
-    )
-
-    available_balance = member.balance - pending_total
-
-    return render_template(
-        "member.html",
-        member=member,
-        referrals=referrals,
-        referral_qr=referral_qr,
-        withdrawals=withdrawals,
-        total_rewards=total_rewards,
-        pending_total=pending_total,
-        available_balance=available_balance
-    )
-
-
-@app.route("/my/<access_token>/withdraw", methods=["POST"])
-def member_withdraw(access_token):
-    member = Member.query.filter_by(
-        access_token=access_token
-    ).first()
-
-    if member is None:
-        return "查询链接无效或已失效", 404
-
-    amount_text = request.form.get("amount")
-
-    try:
-        amount = Decimal(amount_text)
-        create_withdrawal(member, amount)
-
-    except (TypeError, ValueError, InvalidOperation) as error:
-        flash(str(error), "error")
-
-        return redirect(
-            url_for(
-                "member_portal",
-                access_token=access_token
-            )
-        )
-
-    flash(
-        f"提现申请已提交：£{amount:.2f}",
-        "success"
-    )
-
-    return redirect(
-        url_for(
-            "member_portal",
-            access_token=access_token
-        )
-    )
 
 
 @app.route("/poster/<referral_token>")
